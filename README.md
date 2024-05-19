@@ -1,7 +1,7 @@
 # Asus Router Config Decoder
 PowerShell script that decodes the .cfg file resulted from backing up the configuration of an Asus router.
-It saves the entire decoded content of the .cfg file as [FileName]_Decoded.txt.
-It also displays the following information if found in the config file:
+<br>It saves the entire decoded content of the .cfg file as [FileName]_Decoded.txt.
+<br>It also displays the following information if found in the config file:
 - Admin username
 - Admin password
 - SSIDs (Wi-Fi names)
