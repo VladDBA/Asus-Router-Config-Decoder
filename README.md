@@ -26,4 +26,4 @@ PS>.\Decode-AsusRouterConfig.ps1 'C:\Path\To\File\Settings_RT-XXXXX.CFG'
 - Asus RT-AC86U
 
 ## Example screenshot
-![Screenshot1](https://raw.githubusercontent.com/VladDBA/Asus-Router-Config-Decoder/Example.png)
+![Screenshot1](https://raw.githubusercontent.com/VladDBA/Asus-Router-Config-Decoder/main/Example.png)
