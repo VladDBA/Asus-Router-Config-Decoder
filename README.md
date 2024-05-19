@@ -12,6 +12,8 @@ https://github.com/billchaison/asus-router-decoder
 
 Works with PowerShell version 5.1 and above.
 
+[Related blog post](https://vladdba.com/2024/05/19/powershell-decode-asus-router-configuration-backup-file/)
+
 ## Usage examples
 ```powershell
 PS>.\Decode-AsusRouterConfig.ps1 '.\Settings_RT-XXXXX.CFG'
