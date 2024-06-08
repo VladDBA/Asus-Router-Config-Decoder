@@ -94,12 +94,25 @@ $DecodedString = -join ($DecodedBytes | ForEach-Object { if ($_ -eq 0) { "`n" } 
 
 # Write the decoded string to the output file
 $OutputFile = $File -ireplace '.cfg', '_Decoded.txt'
-$DecodedString | Out-File -FilePath "$OutputFile" -Encoding ascii
-Write-Host "->Decoded configuration file has been saved to:"
+$DecodedString | Out-File -FilePath "$OutputFile" -Encoding ascii -Force
+Write-Host " ->Decoded configuration file has been saved to:"
 Write-Host "   $OutputFile" -Fore Green
-
+# Export dhcp_staticlist
+$FoundInfo =  Select-String -Path $OutputFile -Pattern 'dhcp_staticlist=.+'
+$FoundInfo = $FoundInfo -Replace ".+Decoded\.txt:[0-9]+:dhcp_staticlist=", ""
+if($FoundInfo.Length -gt 0){
+    Write-Host " Found DHCP client list"
+    $Header = "        MAC       |      IP       |   HostName "
+    $FoundInfo = $FoundInfo -replace "<","`n" -replace ">>", " | " -replace ">"," | "
+    $FoundInfo = "$Header$FoundInfo"
+    $DHCPFile = $File -ireplace '.cfg', '_DHCP.txt'
+    
+    $FoundInfo  | Out-File -FilePath "$DHCPFile" -Encoding ascii -Force
+    Write-Host " ->DHCP client list has been saved to:"
+    Write-Host "   $DHCPFile" -Fore Green    
+}
 # Retrieve admin username & password, and any configured SSID and password
-Write-Host "->Attempting to identify:`n    HTTP (admin) username & password`n    SSIDs (Wi-Fi names)`n    WPA PSKs (Wi-Fi passwords)"
+Write-Host " ->Attempting to identify:`n    HTTP (admin) username & password`n    SSIDs (Wi-Fi names)`n    WPA PSKs (Wi-Fi passwords)"
 $FoundInfo = Select-String -Path $OutputFile -Pattern '_wpa_psk=.+|_ssid=.+|http_passwd=.+|http_username=.+'
 # Cleanup output for PS versions older than 7
 Write-Host $("=" * 60) -Fore Green
