@@ -7,6 +7,7 @@ PowerShell script that decodes the .cfg file resulted from backing up the config
 - Admin password
 - SSIDs (Wi-Fi names)
 - WPA PSKs (Wi-Fi passwords)
+- PPPOE crednetials
 
 Based on the following Bash script: <br>
 https://github.com/billchaison/asus-router-decoder
@@ -25,6 +26,7 @@ PS>.\Decode-AsusRouterConfig.ps1 'C:\Path\To\File\Settings_RT-XXXXX.CFG'
 ```
 
 ## Tested with configuration files from
+- Asus RT-BE88U
 - Asus RT-AX86U Pro
 - Asus RT-AC86U
 

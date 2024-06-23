@@ -112,8 +112,9 @@ if($FoundInfo.Length -gt 0){
     Write-Host "   $DHCPFile" -Fore Green    
 }
 # Retrieve admin username & password, and any configured SSID and password
-Write-Host " ->Attempting to identify:`n    HTTP (admin) username & password`n    SSIDs (Wi-Fi names)`n    WPA PSKs (Wi-Fi passwords)"
-$FoundInfo = Select-String -Path $OutputFile -Pattern '_wpa_psk=.+|_ssid=.+|http_passwd=.+|http_username=.+'
+Write-Host " ->Attempting to identify:`n    HTTP (admin) username & password`n    PPPOE credentials`n    SSIDs (Wi-Fi names)`n    WPA PSKs (Wi-Fi passwords)"
+$FoundInfo = Select-String -Path $OutputFile -Pattern '_wpa_psk=.+|wl.*_ssid=.+|http_passwd=.+|http_username=.+|pppoe_passwd=.+|pppoe_username=.+' 
+
 # Cleanup output for PS versions older than 7
 Write-Host $("=" * 60) -Fore Green
 $FoundInfo -Replace ".+Decoded\.txt:[0-9]+:", ""
