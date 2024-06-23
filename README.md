@@ -7,7 +7,7 @@ PowerShell script that decodes the .cfg file resulted from backing up the config
 - Admin password
 - SSIDs (Wi-Fi names)
 - WPA PSKs (Wi-Fi passwords)
-- PPPOE crednetials
+- PPPOE credentials
 
 Based on the following Bash script: <br>
 https://github.com/billchaison/asus-router-decoder
