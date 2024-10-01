@@ -17,7 +17,7 @@
  PS>.\Decode-AsusRouterConfig.ps1 '.\Settings_RT-AX86U Pro.CFG'
 
 .EXAMPLE
- PS>.\PSBlitz.ps1 'C:\Users\SomeUser\Documents\Settings_RT-AX86U Pro.CFG'
+ PS>.\Decode-AsusRouterConfig.ps1 'C:\Users\SomeUser\Documents\Settings_RT-AX86U Pro.CFG'
 
 #>
 [cmdletbinding()]
