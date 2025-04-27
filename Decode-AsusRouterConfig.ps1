@@ -81,9 +81,14 @@ while ($i -lt $Size) {
         if ($i -gt 8 -and $FileData[$i - 1] -ne "00") {
             $DecodedBytes.Add(0x00)
         }
-    }
-    else {
+    } else {
         $B = 0xff + $Rand - $CurrentByte
+        # Ensure $B is within the valid range for a byte
+        if ($B -lt 0) {
+            $B = 0
+        } elseif ($B -gt 255) {
+            $B = 255
+        }
         $DecodedBytes.Add([byte]$B)
     }
     $i++
@@ -93,7 +98,10 @@ while ($i -lt $Size) {
 $DecodedString = -join ($DecodedBytes | ForEach-Object { if ($_ -eq 0) { "`n" } else { [char]$_ } })
 
 # Write the decoded string to the output file
-$OutputFile = $File -ireplace '.cfg', '_Decoded.txt'
+$FileNameNoExt = [System.IO.Path]::GetFileNameWithoutExtension("$File")
+$FilePath = [System.IO.Path]::GetDirectoryName("$File")
+$DestName =  $FileNameNoExt+"_Decoded.txt"
+$OutputFile = Join-Path -Path $FilePath -ChildPath $DestName
 $DecodedString | Out-File -FilePath "$OutputFile" -Encoding ascii -Force
 Write-Host " ->Decoded configuration file has been saved to:"
 Write-Host "   $OutputFile" -Fore Green
@@ -105,7 +113,8 @@ if($FoundInfo.Length -gt 0){
     $Header = "        MAC       |      IP       |   HostName "
     $FoundInfo = $FoundInfo -replace "<","`n" -replace ">>", " | " -replace ">"," | "
     $FoundInfo = "$Header$FoundInfo"
-    $DHCPFile = $File -ireplace '.cfg', '_DHCP.txt'
+    $DestName =  $FileNameNoExt + "_DHCP.txt"
+    $DHCPFile = Join-Path -Path $FilePath -ChildPath $DestName
     
     $FoundInfo  | Out-File -FilePath "$DHCPFile" -Encoding ascii -Force
     Write-Host " ->DHCP client list has been saved to:"
