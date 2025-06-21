@@ -41,8 +41,7 @@ if ($Size -lt 10) {
 }
 try {
     $FileData = [System.IO.File]::ReadAllBytes($File) | ForEach-Object { "{0:x2}" -f $_ }
-}
-catch {
+} catch {
     Write-Host " Cannot read file." -Fore Red
     Write-Host " Try providing the full file path."
     Exit
@@ -51,12 +50,10 @@ catch {
 if ($FileData.Count -ne $Size) {
     Write-Host " File read error."  -Fore Red
     Exit
-}
-elseif ($FileData[0] -ne "48" -or $FileData[1] -ne "44" -or $FileData[2] -ne "52" -or $FileData[3] -ne "32") {
+} elseif ($FileData[0] -ne "48" -or $FileData[1] -ne "44" -or $FileData[2] -ne "52" -or $FileData[3] -ne "32") {
     Write-Host " File header check failed."  -Fore Red
     Exit
-}
-else {
+} else {
 
     $DataLength = "$($FileData[6])$($FileData[5])$($FileData[4])"
     $DataLength = [convert]::ToInt32($DataLength, 16)
@@ -64,8 +61,7 @@ else {
     if ($DataLength -ne ($Size - 8)) {
         Write-Host " Data length check failed."
         Exit
-    }
-    else {
+    } else {
         Write-Host " Configuration file appears to be valid."
     }
 }
@@ -100,20 +96,20 @@ $DecodedString = -join ($DecodedBytes | ForEach-Object { if ($_ -eq 0) { "`n" } 
 # Write the decoded string to the output file
 $FileNameNoExt = [System.IO.Path]::GetFileNameWithoutExtension("$File")
 $FilePath = [System.IO.Path]::GetDirectoryName("$File")
-$DestName =  $FileNameNoExt+"_Decoded.txt"
+$DestName = $FileNameNoExt + "_Decoded.txt"
 $OutputFile = Join-Path -Path $FilePath -ChildPath $DestName
 $DecodedString | Out-File -FilePath "$OutputFile" -Encoding ascii -Force
 Write-Host " ->Decoded configuration file has been saved to:"
 Write-Host "   $OutputFile" -Fore Green
 # Export dhcp_staticlist
-$FoundInfo =  Select-String -Path $OutputFile -Pattern 'dhcp_staticlist=.+'
+$FoundInfo = Select-String -Path $OutputFile -Pattern 'dhcp_staticlist=.+'
 $FoundInfo = $FoundInfo -Replace ".+Decoded\.txt:[0-9]+:dhcp_staticlist=", ""
-if($FoundInfo.Length -gt 0){
+if ($FoundInfo.Length -gt 0) {
     Write-Host " Found DHCP client list"
     $Header = "        MAC       |      IP       |   HostName "
-    $FoundInfo = $FoundInfo -replace "<","`n" -replace ">>", " | " -replace ">"," | "
+    $FoundInfo = $FoundInfo -replace "<", "`n" -replace ">>", " | " -replace ">", " | "
     $FoundInfo = "$Header$FoundInfo"
-    $DestName =  $FileNameNoExt + "_DHCP.txt"
+    $DestName = $FileNameNoExt + "_DHCP.txt"
     $DHCPFile = Join-Path -Path $FilePath -ChildPath $DestName
     
     $FoundInfo  | Out-File -FilePath "$DHCPFile" -Encoding ascii -Force
