@@ -19,11 +19,16 @@
 .EXAMPLE
  PS>.\Decode-AsusRouterConfig.ps1 'C:\Users\SomeUser\Documents\Settings_RT-AX86U Pro.CFG'
 
+.EXAMPLE
+ PS>.\Decode-AsusRouterConfig.ps1 'C:\Users\SomeUser\Documents\Settings_RT-AX86U Pro.CFG' -IgnoreHeaderCheck 
+
 #>
 [cmdletbinding()]
 param (
     [Parameter(Position = 0, Mandatory = $true)]
-    [string]$File
+    [string]$File,
+    [Parameter(Position = 1, Mandatory = $false)]
+    [switch]$IgnoreHeaderCheck = $false
 )
 
 if (-not (Test-Path $File)) {
@@ -50,7 +55,7 @@ try {
 if ($FileData.Count -ne $Size) {
     Write-Host " File read error." -Fore Red
     exit
-} elseif ($FileData[0] -ne "48" -or $FileData[1] -ne "44" -or $FileData[2] -ne "52" -or $FileData[3] -ne "32") {
+} elseif (($FileData[0] -ne "48" -or $FileData[1] -ne "44" -or $FileData[2] -ne "52" -or $FileData[3] -ne "32") -and ($IgnoreHeaderCheck -eq $false)) {
     Write-Host " File header check failed." -Fore Red
     exit
 } else {
