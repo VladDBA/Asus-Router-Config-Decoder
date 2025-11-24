@@ -23,6 +23,7 @@
  PS>.\Decode-AsusRouterConfig.ps1 'C:\Users\SomeUser\Documents\Settings_RT-AX86U Pro.CFG' -SkipHeaderCheck 
 
 #>
+
 [cmdletbinding()]
 param (
     [Parameter(Position = 0, Mandatory = $true)]
