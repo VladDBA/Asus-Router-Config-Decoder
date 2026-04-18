@@ -26,7 +26,7 @@
  PS>.\Decode-AsusRouterConfig.ps1 '.\Settings_RT-AX86U Pro.CFG' -OutputDirectory 'C:\Decoded'
 
 .EXAMPLE
- PS>.\Decode-AsusRouterConfig.ps1 '.\Settings_RT-AX86U Pro.CFG' -Force
+ PS>.\Decode-AsusRouterConfig.ps1 '.\Settings_RT-AX86U Pro.CFG' -OutputDirectory 'C:\Decoded' -SkipHeaderCheck
 
 .PARAMETER File
  The path to the ASUS router backup configuration file (.CFG).
