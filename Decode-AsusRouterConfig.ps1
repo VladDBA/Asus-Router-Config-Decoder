@@ -162,6 +162,24 @@ Write-Host " ->Attempting to identify:`n    HTTP (admin) username & password`n  
 
 $CredMatches = Select-String -Path $OutputFile -Pattern "_wpa_psk=.+|wl.*_ssid=.+|http_passwd=.+|http_username=.+|pppoe_passwd=.+|pppoe_username=.+"
 $CredLines = $CredMatches | Select-Object -ExpandProperty Line
+
+# For WiFi entries, only include SSID/WPA PSK pairs - skip orphaned SSIDs or PSKs
+$WifiSSIDLines  = $CredLines | Where-Object { $_ -match "^wl[^_]+_ssid=" }
+$WifiPSKLines   = $CredLines | Where-Object { $_ -match "^wl[^_]+_wpa_psk=" }
+$OtherCredLines = $CredLines | Where-Object { $_ -notmatch "^wl[^_]+_(ssid|wpa_psk)=" }
+$PairedWifiLines = foreach ($SSIDLine in $WifiSSIDLines) {
+    if ($SSIDLine -match "^([^_]+)_ssid=") {
+        # Escape prefix for regex (e.g. "wl0.1" -> "wl0\.1") to avoid dot matching any char
+        $WifiPrefix = [regex]::Escape($Matches[1])
+        $MatchingPSK = $WifiPSKLines | Where-Object { $_ -match "^${WifiPrefix}_wpa_psk=" }
+        if ($MatchingPSK) {
+            $SSIDLine
+            $MatchingPSK
+        }
+    }
+}
+$CredLines = @($OtherCredLines) + @($PairedWifiLines)
+
 Write-Host $("=" * 60) -ForegroundColor Green
 $CredLines
 Write-Host $("=" * 60) -ForegroundColor Green
