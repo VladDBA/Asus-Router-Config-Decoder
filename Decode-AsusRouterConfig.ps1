@@ -26,15 +26,14 @@
 
 [cmdletbinding()]
 param (
-    [Parameter(Position = 0, Mandatory = $true)]
+    [Parameter(Position = 0, Mandatory)]
     [string]$File,
-    [Parameter(Position = 1, Mandatory = $false)]
-    [switch]$SkipHeaderCheck = $false
+    [Parameter(Position = 1)]
+    [switch]$SkipHeaderCheck
 )
 
 if (-not (Test-Path $File)) {
-    Write-Host " Provide the ASUS router config file name." -Fore Red
-    exit
+    throw " Provide the ASUS router config file name."
 }
 # Resolve file path in case of relative path
 $File = Get-Item -Path $File | Select-Object -ExpandProperty FullName -ErrorAction Stop
@@ -42,23 +41,18 @@ $File = Get-Item -Path $File | Select-Object -ExpandProperty FullName -ErrorActi
 $Size = (Get-Item $File).length
 
 if ($Size -lt 10) {
-    Write-Host " File size is too small." -Fore Red
-    exit
+    throw " File size is too small."
 }
 try {
     $FileData = [System.IO.File]::ReadAllBytes($File) | ForEach-Object { "{0:x2}" -f $_ }
 } catch {
-    Write-Host " Cannot read file." -Fore Red
-    Write-Host " Try providing the full file path."
-    exit
+    throw " Cannot read file. Try providing the full file path."
 }
 
 if ($FileData.Count -ne $Size) {
-    Write-Host " File read error." -Fore Red
-    exit
+    throw " File read error."
 } elseif ((($FileData[0] -ne "48") -or ($FileData[1] -ne "44") -or ($FileData[2] -ne "52") -or ($FileData[3] -ne "32")) -and ($SkipHeaderCheck -eq $false)) {
-    Write-Host " File header check failed." -Fore Red
-    exit
+    throw "File header check failed."
 } else {
 
     $DataLength = "$($FileData[6])$($FileData[5])$($FileData[4])"
@@ -110,7 +104,7 @@ Write-Host "   $OutputFile" -Fore Green
 # Export dhcp_staticlist
 $FoundInfo = Select-String -Path $OutputFile -Pattern 'dhcp_staticlist=.+'
 $FoundInfo = $FoundInfo -replace ".+Decoded\.txt:[0-9]+:dhcp_staticlist=", ""
-if ($FoundInfo.Length -gt 0) {
+if ($null -ne $FoundInfo -and $FoundInfo.Length -gt 0) {
     Write-Host " Found DHCP client list"
     $Header = "        MAC       |      IP       |   HostName "
     $FoundInfo = $FoundInfo -replace "<", "`n" -replace ">>", " | " -replace ">", " | "
