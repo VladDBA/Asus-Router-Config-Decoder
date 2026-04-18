@@ -20,15 +20,37 @@
  PS>.\Decode-AsusRouterConfig.ps1 'C:\Users\SomeUser\Documents\Settings_RT-AX86U Pro.CFG'
 
 .EXAMPLE
- PS>.\Decode-AsusRouterConfig.ps1 'C:\Users\SomeUser\Documents\Settings_RT-AX86U Pro.CFG' -SkipHeaderCheck 
+ PS>.\Decode-AsusRouterConfig.ps1 'C:\Users\SomeUser\Documents\Settings_RT-AX86U Pro.CFG' -SkipHeaderCheck
+
+.EXAMPLE
+ PS>.\Decode-AsusRouterConfig.ps1 '.\Settings_RT-AX86U Pro.CFG' -OutputDirectory 'C:\Decoded'
+
+.EXAMPLE
+ PS>.\Decode-AsusRouterConfig.ps1 '.\Settings_RT-AX86U Pro.CFG' -OutputDirectory 'C:\Decoded' -SkipHeaderCheck
+
+.PARAMETER File
+ The path to the ASUS router backup configuration file (.CFG).
+ Accepts both relative and absolute paths.
+
+.PARAMETER OutputDirectory
+ Optional. The directory where decoded output files will be saved.
+ If not specified, output files are saved in the same directory as the input file.
+ The directory will be created if it does not exist.
+
+.PARAMETER SkipHeaderCheck
+ Optional. Skips validation of the "HDR2" magic bytes at the start of the file.
+ Use this if the file header is non-standard but the file is otherwise valid.
+
 
 #>
 
 [cmdletbinding()]
 param (
-    [Parameter(Position = 0, Mandatory)]
+    [Parameter(Position=0, Mandatory)]
     [string]$File,
-    [Parameter(Position = 1)]
+    [Parameter(Position=1)]
+    [string]$OutputDirectory,
+    [Parameter(Position=2)]
     [switch]$SkipHeaderCheck
 )
 
@@ -44,45 +66,57 @@ if ($Size -lt 10) {
     throw " File size is too small."
 }
 try {
-    $FileData = [System.IO.File]::ReadAllBytes($File) | ForEach-Object { "{0:x2}" -f $_ }
+    # No per-byte conversion needed here
+    [byte[]]$FileData = [System.IO.File]::ReadAllBytes($File)
 } catch {
     throw " Cannot read file. Try providing the full file path."
 }
 
-if ($FileData.Count -ne $Size) {
-    throw " File read error."
-} elseif ((($FileData[0] -ne "48") -or ($FileData[1] -ne "44") -or ($FileData[2] -ne "52") -or ($FileData[3] -ne "32")) -and ($SkipHeaderCheck -eq $false)) {
+# Magic bytes 0x48 0x44 0x52 0x32 = ASCII "HDR2"
+if ((($FileData[0] -ne 0x48) -or ($FileData[1] -ne 0x44) -or ($FileData[2] -ne 0x52) -or ($FileData[3] -ne 0x32)) -and (-not $SkipHeaderCheck)) {
     throw "File header check failed."
 } else {
-
-    $DataLength = "$($FileData[6])$($FileData[5])$($FileData[4])"
-    $DataLength = [convert]::ToInt32($DataLength, 16)
+    # Bytes 4-6 store the data length as a 3-byte little-endian integer (byte 4 = LSB, byte 6 = MSB)
+    $DataLength = [int]$FileData[4] + ([int]$FileData[5] * 256) + ([int]$FileData[6] * 65536)
 
     if ($DataLength -ne ($Size - 8)) {
         Write-Host " Data length check failed."
         exit
     } else {
-        Write-Host " Configuration file appears to be valid."
+        Write-Verbose " Configuration file appears to be valid."
     }
 }
 
-$Rand = [convert]::ToInt32($FileData[7], 16)
+# Determine output directory
+if ($OutputDirectory) {
+    if (-not (Test-Path $OutputDirectory)) {
+        $splatNewDir = @{
+            ItemType = "Directory"
+            Path     = $OutputDirectory
+            Force    = $true
+        }
+        New-Item @splatNewDir | Out-Null
+    }
+    $FilePath = (Get-Item -Path $OutputDirectory).FullName
+} else {
+    $FilePath = [System.IO.Path]::GetDirectoryName($File)
+}
+
+$Rand = $FileData[7]
 $i = 8
 $DecodedBytes = New-Object System.Collections.Generic.List[byte]
 
-Write-Host " Decoding configuration file..."
+Write-Verbose " Decoding configuration file..."
 while ($i -lt $Size) {
-    $CurrentByte = [convert]::ToInt32($FileData[$i], 16)
+    $CurrentByte = $FileData[$i]
     if ($CurrentByte -gt 252) {
-        if ($i -gt 8 -and $FileData[$i - 1] -ne "00") {
+        if ($i -gt 8 -and $FileData[$i - 1] -ne 0x00) {
             $DecodedBytes.Add(0x00)
         }
     } else {
-        $B = 0xff + $Rand - $CurrentByte
-        # Ensure $B is within the valid range for a byte
-        if ($B -lt 0) {
-            $B = 0
-        } elseif ($B -gt 255) {
+        # $B is always >= 3 (0xFF + 0 - 252); upper clamp handles Rand > CurrentByte overflow
+        $B = 0xFF + $Rand - $CurrentByte
+        if ($B -gt 255) {
             $B = 255
         }
         $DecodedBytes.Add([byte]$B)
@@ -94,33 +128,51 @@ while ($i -lt $Size) {
 $DecodedString = -join ($DecodedBytes | ForEach-Object { if ($_ -eq 0) { "`n" } else { [char]$_ } })
 
 # Write the decoded string to the output file
-$FileNameNoExt = [System.IO.Path]::GetFileNameWithoutExtension("$File")
-$FilePath = [System.IO.Path]::GetDirectoryName("$File")
+$FileNameNoExt = [System.IO.Path]::GetFileNameWithoutExtension($File)
 $DestName = $FileNameNoExt + "_Decoded.txt"
 $OutputFile = Join-Path -Path $FilePath -ChildPath $DestName
-$DecodedString | Out-File -FilePath "$OutputFile" -Encoding ascii -Force
+$splatOutDecoded = @{
+    FilePath = $OutputFile
+    Encoding = "ascii"
+    Force    = $Force.IsPresent
+}
+$DecodedString | Out-File @splatOutDecoded
 Write-Host " ->Decoded configuration file has been saved to:"
-Write-Host "   $OutputFile" -Fore Green
+Write-Host "   $OutputFile" -ForegroundColor Green
 # Export dhcp_staticlist
-$FoundInfo = Select-String -Path $OutputFile -Pattern 'dhcp_staticlist=.+'
-$FoundInfo = $FoundInfo -replace ".+Decoded\.txt:[0-9]+:dhcp_staticlist=", ""
-if ($null -ne $FoundInfo -and $FoundInfo.Length -gt 0) {
+$DHCPMatch = Select-String -Path $OutputFile -Pattern "dhcp_staticlist=.+"
+if ($DHCPMatch) {
     Write-Host " Found DHCP client list"
+    $DHCPInfo = $DHCPMatch.Line -replace "dhcp_staticlist=", ""
     $Header = "        MAC       |      IP       |   HostName "
-    $FoundInfo = $FoundInfo -replace "<", "`n" -replace ">>", " | " -replace ">", " | "
-    $FoundInfo = "$Header$FoundInfo"
+    $DHCPInfo = $DHCPInfo -replace "<", "`n" -replace ">>", " | " -replace ">", " | "
+    $DHCPInfo = "$Header$DHCPInfo"
     $DestName = $FileNameNoExt + "_DHCP.txt"
     $DHCPFile = Join-Path -Path $FilePath -ChildPath $DestName
-    
-    $FoundInfo  | Out-File -FilePath "$DHCPFile" -Encoding ascii -Force
+    $splatOutDHCP = @{
+        FilePath = $DHCPFile
+        Encoding = "ascii"
+    }
+    $DHCPInfo | Out-File @splatOutDHCP
     Write-Host " ->DHCP client list has been saved to:"
-    Write-Host "   $DHCPFile" -Fore Green    
+    Write-Host "   $DHCPFile" -ForegroundColor Green
 }
 # Retrieve admin username & password, and any configured SSID and password
 Write-Host " ->Attempting to identify:`n    HTTP (admin) username & password`n    PPPOE credentials`n    SSIDs (Wi-Fi names)`n    WPA PSKs (Wi-Fi passwords)"
-$FoundInfo = Select-String -Path $OutputFile -Pattern '_wpa_psk=.+|wl.*_ssid=.+|http_passwd=.+|http_username=.+|pppoe_passwd=.+|pppoe_username=.+' 
 
-# Cleanup output for PS versions older than 7
-Write-Host $("=" * 60) -Fore Green
-$FoundInfo -replace ".+Decoded\.txt:[0-9]+:", ""
-Write-Host $("=" * 60) -Fore Green
+$CredMatches = Select-String -Path $OutputFile -Pattern "_wpa_psk=.+|wl.*_ssid=.+|http_passwd=.+|http_username=.+|pppoe_passwd=.+|pppoe_username=.+"
+$CredLines = $CredMatches | Select-Object -ExpandProperty Line
+Write-Host $("=" * 60) -ForegroundColor Green
+$CredLines
+Write-Host $("=" * 60) -ForegroundColor Green
+if ($CredLines) {
+    $DestName = $FileNameNoExt + "_Credentials.txt"
+    $CredFile = Join-Path -Path $FilePath -ChildPath $DestName
+    $splatOutCred = @{
+        FilePath = $CredFile
+        Encoding = "ascii"
+    }
+    $CredLines | Out-File @splatOutCred
+    Write-Host " ->Credentials have been saved to:"
+    Write-Host "   $CredFile" -ForegroundColor Green
+}
