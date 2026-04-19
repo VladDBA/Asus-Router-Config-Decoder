@@ -2,7 +2,7 @@
 
 PowerShell script that decodes the .cfg file resulted from backing up the configuration of an Asus router.\
 It saves the entire decoded content of the .cfg file as `[FileName]_Decoded.txt`.\
-It saves Admin, PPPOE, and WiFi credentials as `[FileName]_Credentials.txt`.\
+Admin, PPPOE, and WiFi credentials as `[FileName]_Credentials.txt`.\
 If the config file contains a DHCP client list, it will be formatted as pipe-delimited text and saved as `[FileName]_DHCP.txt`.\
 It also displays the following information if found in the config file:
 
@@ -41,4 +41,4 @@ PS>.\Decode-AsusRouterConfig.ps1 'C:\Path\To\File\Settings_RT-XXXXX.CFG'
 
 ## Example screenshot
 
-![Screenshot1](https://raw.githubusercontent.com/VladDBA/Asus-Router-Config-Decoder/main/Example.png)
+![Screenshot1](Example.png)
